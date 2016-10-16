@@ -29,10 +29,12 @@ minetest.register_node("turtle_miner:firstturtle", {
 				"button_exit[5,1;2,1;exit;Exit]" ..
 				"image_button[1,1;1,1;arrow_up.png;up;]" ..
 				"image_button[2,1;1,1;arrow_fw.png;forward;]" ..
+				"button[3,1;1,1;dig;dig]" ..
 				"image_button[1,2;1,1;arrow_left.png;turnleft;]"..
 				"image_button[3,2;1,1;arrow_right.png;turnright;]" ..
 				"image_button[1,3;1,1;arrow_down.png;down;]" ..
 				"image_button[2,3;1,1;arrow_bw.png;backward;]"
+				--.. "button[3,3;1,1;build;build]"
 				)
 			return itemstack
 		  
@@ -40,8 +42,6 @@ minetest.register_node("turtle_miner:firstturtle", {
 		
 	end,
 })
-
--- image_button[X,Y;W,H;image;name;label]
 
 local function nextrangeright(x)
 	x = x + 1
@@ -79,27 +79,33 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	end
    
 	local new_pos = vector.new(pos)
+	local dig_pos = vector.new(pos)
 	
 	local dir = minetest.facedir_to_dir(node.param2)
 	local dirx= dir.x
 	local dirz= dir.z
+	local move = false
 	
 	if fields.up then
 		new_pos.y = new_pos.y + 1
+		move = true
 	end
    
 	if fields.down then
 		new_pos.y = new_pos.y - 1
+		move = true
 	end
    
 	if fields.forward then
 		new_pos.z = new_pos.z - dirz
 		new_pos.x = new_pos.x - dirx
+		move = true
 	end
    
 	if fields.backward then
 		new_pos.z = new_pos.z + dirz
 		new_pos.x = new_pos.x + dirx
+		move = true
 	end
 	
 	if fields.turnright then
@@ -116,6 +122,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 		
 		node.param2 = new_param2
 		minetest.swap_node(pos, node)
+		move = false
 		minetest.sound_play("moveokay", {to_player = player_name,gain = 1.0,})
 		return
 	end
@@ -134,33 +141,39 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 		
 		node.param2 = new_param2
 		minetest.swap_node(pos, node)
+		move = false
 		minetest.sound_play("moveokay",{to_player = player_name,gain = 1.0,})
 		return
 	end	
-	
 
 	-- Check new position if empty
 	local newposchecktable = minetest.get_node(new_pos)
 	local newposcheck = newposchecktable.name
 	local walkable = minetest.registered_nodes[newposcheck].walkable
 	
-	if not walkable then
-		if not vector.equals(pos, new_pos) then
-		-- Move node to new position
-			minetest.remove_node(pos)
-			minetest.set_node(new_pos, node) --move node to new position
-			minetest.get_meta(new_pos):from_table(meta) --set metadata of new node
-      
-			-- Update formspec reference position, wait for next instructions
-			turtle_formspec_positions[player_name] = new_pos
-			
+	if fields.dig then
+		if walkable then
+			dig_pos.z = dig_pos.z - dirz
+			dig_pos.x = dig_pos.x - dirx
+			move = false
+			minetest.set_node(dig_pos, {name="air"})
 			minetest.sound_play("moveokay", {to_player = player_name,gain = 1.0,})
+		else
+			minetest.sound_play("moveerror", {to_player = player_name,gain = 1.0,})
 		end
+	end
+	
+	if (not walkable) and move then 
+		-- Move node to new position
+		minetest.remove_node(pos)
+		minetest.set_node(new_pos, node) --move node to new position
+		minetest.get_meta(new_pos):from_table(meta) --set metadata of new node
+		-- Update formspec reference position, wait for next instructions
+		turtle_formspec_positions[player_name] = new_pos
+		
+		minetest.sound_play("moveokay", {to_player = player_name,gain = 1.0,})
 	else
-		minetest.sound_play("moveerror", {
-			to_player = player_name,
-			gain = 1.0,
-		})
+		minetest.sound_play("moveerror", {to_player = player_name,gain = 1.0,})
 	end
 end)
 
