@@ -80,6 +80,10 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
    
 	local new_pos = vector.new(pos)
 	
+	local dir = minetest.facedir_to_dir(node.param2)
+	local dirx= dir.x
+	local dirz= dir.z
+	
 	if fields.up then
 		new_pos.y = new_pos.y + 1
 	end
@@ -89,11 +93,13 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	end
    
 	if fields.forward then
-		new_pos.z = new_pos.z + 1
+		new_pos.z = new_pos.z - dirz
+		new_pos.x = new_pos.x - dirx
 	end
    
 	if fields.backward then
-		new_pos.z = new_pos.z - 1
+		new_pos.z = new_pos.z + dirz
+		new_pos.x = new_pos.x + dirx
 	end
 	
 	if fields.turnright then
@@ -137,11 +143,6 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	local newposchecktable = minetest.get_node(new_pos)
 	local newposcheck = newposchecktable.name
 	local walkable = minetest.registered_nodes[newposcheck].walkable
-	local dir = minetest.facedir_to_dir(node.param2)
-	
-	minetest.chat_send_all(newposcheck)
-	minetest.chat_send_all(tostring(dir.x))
-	minetest.chat_send_all(tostring(walkable))
 	
 	if not walkable then
 		if not vector.equals(pos, new_pos) then
