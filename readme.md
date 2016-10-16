@@ -1,0 +1,1 @@
+Installation as always for Mods in Minetest: Extract the downloaded ZIP-Master file and move ot to mods folfer of Minetest. Enable the Mod in the settings for the world.
