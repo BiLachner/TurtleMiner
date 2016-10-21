@@ -151,7 +151,7 @@ minetest.register_craftitem("turtleminer:remotecontrol", {
 })
 
 -- [function] register turtle
-function turtleminer.register_turtle(turtlestring, number, desc)
+function turtleminer.register_turtle(turtlestring, desc)
 	minetest.register_node("turtleminer:"..turtlestring, {
 		drawtype = "nodebox",
 		description = desc.description,
@@ -161,7 +161,7 @@ function turtleminer.register_turtle(turtlestring, number, desc)
 		paramtype2 = "facedir",
 		node_box = {
 			type = "fixed",
-			fixed = desc.nodeboxes
+			fixed = desc.nodebox
 		},
 		after_place_node = function(pos, placer)
 			local meta = minetest.get_meta(pos) -- get meta
