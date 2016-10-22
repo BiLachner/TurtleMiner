@@ -16,6 +16,8 @@ function turtleminer.formspec()
 		"image_button[2,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
 		"button[3,1;2,1;digfront;dig front]" ..
 		"button[3,3;2,1;digbottom;dig under]" ..
+		"button[5,1;2,1;buildfront;build front]" ..
+		"button[5,3;2,1;buildbottom;build under]" ..
 		"image_button[1,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
 		"image_button[3,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
 		"image_button[1,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
@@ -140,6 +142,34 @@ function turtleminer.dig(pos, where, name)
 	end
 end
 
+-- [function] build
+function turtleminer.build(pos, where, name)
+	-- [function] build
+	local function build(pos)
+		if minetest.get_node_or_nil(pos) then -- if node, dig
+			minetest.set_node(pos, { name = "dirt" })
+			nodeupdate(pos)
+			minetest.sound_play("moveokay", {to_player = name, gain = 1.0,}) -- play sound
+		else minetest.sound_play("moveerror", {to_player = name, gain = 1.0,}) end -- else, play error sound
+	end
+
+	local node = minetest.get_node(pos) -- get node ref
+	local dir = minetest.facedir_to_dir(node.param2) -- get facedir
+	local build_pos = vector.new(pos) -- dig position
+
+	if where == "front" then -- if where is front, dig in front
+		-- adjust position considering facedir
+		build_pos.z = build_pos.z - dir.z
+		build_pos.x = build_pos.x - dir.x
+		build(build_pos) -- dig node in front
+	elseif where == "below" then -- elseif where is below, dig below
+		build_pos.y = build_pos.y - 1 -- remove 1 from dig_pos y axis
+		build(build_pos) -- dig node below
+	end
+end
+
+
+
 --------------
 -- NODE DEF --
 --------------
@@ -201,5 +231,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	elseif fields.up then turtleminer.move(pos, "up", name) -- elseif move up button, move up
 	elseif fields.down then turtleminer.move(pos, "down", name) -- elseif move down button, move down
 	elseif fields.digfront then turtleminer.dig(pos, "front", name) -- elseif dig in front button, dig in front
-	elseif fields.digbottom then turtleminer.dig(pos, "below", name) end -- elseif dig bottom button, dig below
+	elseif fields.digbottom then turtleminer.dig(pos, "below", name) -- elseif dig bottom button, dig below
+	elseif fields.buildfront then turtleminer.build(pos, "front", name) -- elseif build in front button, build in front
+	elseif fields.buildbottom then turtleminer.build(pos, "below", name) end -- elseif build bottom button, build below
 end)
