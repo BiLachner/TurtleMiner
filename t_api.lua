@@ -9,19 +9,19 @@ local positions = {} -- form positions
 -- [function] formspec
 function turtleminer.formspec()
 	local form =
-		"size[9,4]" ..
+		"size[6,4]" ..
 		"label[0,0;Click buttons to move the turtle around!]" ..
-		"button_exit[5,1;2,1;exit;Exit]" ..
-		"image_button[1,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
-		"image_button[2,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
-		"button[3,1;2,1;digfront;dig front]" ..
-		"button[3,3;2,1;digbottom;dig under]" ..
-		"button[5,1;2,1;buildfront;build front]" ..
-		"button[5,3;2,1;buildbottom;build under]" ..
-		"image_button[1,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
-		"image_button[3,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
-		"image_button[1,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
-		"image_button[2,3;1,1;turtleminer_remote_arrow_bw.png;backward;]"
+		"button_exit[4,1;1,1;exit;Exit]" ..
+		"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
+		"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
+		"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
+		"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
+		"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
+		"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
+		"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
+		"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
+		"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
+		"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]"
 	return form -- return formspec text
 end
 
