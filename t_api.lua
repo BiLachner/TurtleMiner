@@ -6,34 +6,47 @@
 
 local positions = {} -- form positions
 
--- [function] formspec
-function turtleminer.formspec()
-	local form =
-		"size[6,4]" ..
-		"label[0,0;Click buttons to move the turtle around!]" ..
-		"button_exit[4,1;1,1;exit;Exit]" ..
-		"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
-		"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
-		"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
-		"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
-		"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
-		"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
-		"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
-		"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
-		"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
-		"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]"
-	return form -- return formspec text
-end
+--------------
+-- FORMSPEC --
+--------------
 
--- [function] set name formspec
-function turtleminer.form_name(turtle)
-  if not turtle then local turtle = "" end -- use blank channel is none specified
-  local formspec =
-    "size[6,1.7]"..
-    default.gui_bg_img..
-    "field[.25,0.50;6,1;name;Name Your Turtle:;"..turtle.."]"..
-    "button[4.95,1;1,1;submit_name;Set]"
-  return formspec
+-- [function] show formspec
+function turtleminer.show_formspec(name, pos, formname, params)
+	local meta = minetest.get_meta(pos) -- get meta
+  if not meta then return false end -- if not meta, something is wrong
+  positions[name] = pos -- set position (for receive fields)
+
+	local function show(formspec)
+		meta:set_string("formname", formname) -- set meta
+		minetest.show_formspec(name, "turtleminer:"..formname, formspec) -- show formspec
+	end
+
+  -- if form name is main, show main
+  if formname == "main" then
+		local formspec =
+			"size[6,4]" ..
+			"label[0,0;Click buttons to move the turtle around!]" ..
+			"button_exit[4,1;1,1;exit;Exit]" ..
+			"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
+			"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
+			"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
+			"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
+			"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
+			"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
+			"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
+			"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
+			"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
+			"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]"
+		show(formspec) -- show
+	elseif formname == "set_name" then -- elseif form name is set_name, show set name formspec
+		if not params then local params = "" end -- use blank name is none specified
+	  local formspec =
+	    "size[6,1.7]"..
+	    default.gui_bg_img..
+	    "field[.25,0.50;6,1;name;Name Your Turtle:;"..params.."]"..
+	    "button[4.95,1;1,1;submit_name;Set]"
+		show(formspec) -- show
+	end
 end
 
 -- [function] rotate
@@ -215,13 +228,18 @@ function turtleminer.register_turtle(turtlestring, desc)
 			local meta = minetest.get_meta(pos)
 			-- if name not set, show name form
 			if not meta:get_string("name") or meta:get_string("name") == "" then
-				positions[name] = pos -- store turtle position
-				minetest.show_formspec(name, "turtleminer:name_form", turtleminer.form_name('')) -- show formspec
+				turtleminer.show_formspec(name, pos, "set_name", "") -- show set name formspec
+			elseif meta:get_string("formname") ~= "" then -- elseif formname is set, show specific form
+				-- if wielding remote control, show formspec
+				if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
+					turtleminer.show_formspec(name, pos, meta:get_string("formname")) -- show formspec (note: no params)
+				else
+					minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
+				end
 			else -- else, show normal formspec
 				-- if wielding remote control, show formspec
 				if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
-					positions[name] = pos -- store turtle position
-					minetest.show_formspec(name, "turtleminer:main_form", turtleminer.formspec())
+					turtleminer.show_formspec(name, pos, "main") -- show main formspec
 				else
 					minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
 				end
@@ -232,7 +250,7 @@ end
 
 -- on player fields received
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:main_form" then return end -- if not right formspec, return
+	if formname ~= "turtleminer:main" then return end -- if not right formspec, return
 
 	local name = sender:get_player_name()
 	local pos = positions[name]
@@ -256,12 +274,12 @@ end)
 
 -- on player fields received
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:name_form" then return end -- if not right formspec, return
+	if formname ~= "turtleminer:set_name" then return end -- if not right formspec, return
 
 	local name = sender:get_player_name()
 	local meta = minetest.get_meta(positions[name])
 
 	meta:set_string("name", fields.name) -- set name
 	meta:set_string("infotext", fields.name .. "\n(owned by "..name..")") -- set infotext
-	minetest.show_formspec(name, "turtleminer:main_form", turtleminer.formspec()) -- show formspec
+	turtleminer.show_formspec(name, positions[name], "main") -- show main formspec
 end)
