@@ -105,14 +105,32 @@ function turtleminer.move(pos, direction, name)
 	local node = minetest.get_node(pos) -- get node ref
 	local dir = minetest.facedir_to_dir(node.param2) -- get facedir
 	local new_pos = vector.new(pos) -- new pos vector
+	local entity_pos = vector.new(pos) -- entity position vector
 
-	local function turtle_move(pos, new_pos)
+	local function turtle_move(pos, new_pos, entity_pos)
 		-- if not walkable, proceed
 		if not minetest.registered_nodes[minetest.get_node(new_pos).name].walkable then
 			minetest.remove_node(pos) -- remote old node
 			minetest.set_node(new_pos, node) -- create new node
 			positions[name] = new_pos -- update position
 			minetest.get_meta(new_pos):from_table(oldmeta) -- set new meta
+
+			-- if not walkable, move player
+			if not minetest.registered_nodes[minetest.get_node(entity_pos).name].walkable then
+				local objects_to_move = {}
+
+				local objects = minetest.get_objects_inside_radius(new_pos, 1) -- get objects
+				for _, obj in ipairs(objects) do -- for every object, add to table
+					table.insert(objects_to_move, obj) -- add to table
+				end
+
+				for _, obj in ipairs(objects_to_move) do
+					local entity = obj:get_luaentity()
+					if not entity then
+							obj:setpos(entity_pos)
+					end
+				end
+			end
 
 			minetest.sound_play("moveokay", { player = name, gain = 1.0 }) -- play sound
 		else -- else, return false
@@ -126,17 +144,23 @@ function turtleminer.move(pos, direction, name)
 		-- calculate new coords
 		new_pos.z = new_pos.z - dir.z
 		new_pos.x = new_pos.x - dir.x
-		turtle_move(pos, new_pos) -- call local function
+		entity_pos.z = entity_pos.z - dir.z * 2
+		entity_pos.x = entity_pos.x - dir.x * 2
+		turtle_move(pos, new_pos, entity_pos) -- call local function
 	elseif direction == "backward" or direction == "b" then
 		new_pos.z = new_pos.z + dir.z
 		new_pos.x = new_pos.x + dir.x
-		turtle_move(pos, new_pos) -- call local function
+		entity_pos.z = entity_pos.z + dir.z * 2
+		entity_pos.x = entity_pos.x + dir.x * 2
+		turtle_move(pos, new_pos, entity_pos) -- call local function
 	elseif direction == "up" or direction == "u" then
 		new_pos.y = new_pos.y + 1
-		turtle_move(pos, new_pos) -- call local function
+		entity_pos.y = entity_pos.y + 2
+		turtle_move(pos, new_pos, entity_pos) -- call local function
 	elseif direction == "down" or direction == "d" then
 		new_pos.y = new_pos.y - 1
-		turtle_move(pos, new_pos) -- call local function
+		entity_pos.y = entity_pos.y - 2
+		turtle_move(pos, new_pos, entity_pos) -- call local function
 	end
 end
 
