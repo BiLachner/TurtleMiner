@@ -302,8 +302,9 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 
 	local name = sender:get_player_name()
 	local meta = minetest.get_meta(positions[name])
+	local tname = fields.name or "Unnamed turtle"
 
-	meta:set_string("name", fields.name) -- set name
-	meta:set_string("infotext", fields.name .. "\n(owned by "..name..")") -- set infotext
+	meta:set_string("name", tname) -- set name
+	meta:set_string("infotext", tname .. "\n(owned by "..name..")") -- set infotext
 	turtleminer.show_formspec(name, positions[name], "main") -- show main formspec
 end)
