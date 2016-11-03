@@ -25,6 +25,17 @@ function turtleminer.formspec()
 	return form -- return formspec text
 end
 
+-- [function] set name formspec
+function turtleminer.form_name(turtle)
+  if not turtle then local turtle = "" end -- use blank channel is none specified
+  local formspec =
+    "size[6,1.7]"..
+    default.gui_bg_img..
+    "field[.25,0.50;6,1;name;Name Your Turtle:;"..turtle.."]"..
+    "button[4.95,1;1,1;submit_name;Set]"
+  return formspec
+end
+
 -- [function] rotate
 function turtleminer.rotate(pos, direction, player)
 	-- [function] calculate dir
@@ -197,16 +208,23 @@ function turtleminer.register_turtle(turtlestring, desc)
 			local meta = minetest.get_meta(pos) -- get meta
 			--meta:set_string("formspec", turtleminer.formspec()) -- set formspec
 			meta:set_string("owner", placer:get_player_name()) -- set owner
-			meta:set_string("infotext", "Turtle owned by "..placer:get_player_name()) -- set infotext
+			meta:set_string("infotext", "Unnamed turtle\n(owned by "..placer:get_player_name()..")") -- set infotext
 		end,
 		on_rightclick = function(pos, node, clicker)
 			local name = clicker:get_player_name() -- get clicker name
-			-- if wielding remote control, show formspec
-			if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
+			local meta = minetest.get_meta(pos)
+			-- if name not set, show name form
+			if not meta:get_string("name") or meta:get_string("name") == "" then
 				positions[name] = pos -- store turtle position
-				minetest.show_formspec(name, "turtleminer:main_form", turtleminer.formspec())
-			else
-				minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
+				minetest.show_formspec(name, "turtleminer:name_form", turtleminer.form_name('')) -- show formspec
+			else -- else, show normal formspec
+				-- if wielding remote control, show formspec
+				if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
+					positions[name] = pos -- store turtle position
+					minetest.show_formspec(name, "turtleminer:main_form", turtleminer.formspec())
+				else
+					minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
+				end
 			end
 		end,
 	})
@@ -234,4 +252,16 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	elseif fields.digbottom then turtleminer.dig(pos, "below", name) -- elseif dig bottom button, dig below
 	elseif fields.buildfront then turtleminer.build(pos, "front", name) -- elseif build in front button, build in front
 	elseif fields.buildbottom then turtleminer.build(pos, "below", name) end -- elseif build bottom button, build below
+end)
+
+-- on player fields received
+minetest.register_on_player_receive_fields(function(sender, formname, fields)
+	if formname ~= "turtleminer:name_form" then return end -- if not right formspec, return
+
+	local name = sender:get_player_name()
+	local meta = minetest.get_meta(positions[name])
+
+	meta:set_string("name", fields.name) -- set name
+	meta:set_string("infotext", fields.name .. "\n(owned by "..name..")") -- set infotext
+	minetest.show_formspec(name, "turtleminer:main_form", turtleminer.formspec()) -- show formspec
 end)
