@@ -199,7 +199,7 @@ end
 function turtleminer.build(pos, where, name)
 	-- [function] build
 	local function build(pos)
-		if minetest.get_node_or_nil(pos) then -- if node, dig
+		if minetest.registered_nodes[minetest.get_node(pos).name].buildable_to then -- if is buildable_to, build
 			minetest.set_node(pos, { name = "dirt" })
 			nodeupdate(pos)
 			minetest.sound_play("moveokay", {to_player = name, gain = 1.0,}) -- play sound
