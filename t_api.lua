@@ -1,9 +1,5 @@
 -- turtleminer/t_api.lua
 
----------------
--- FUNCTIONS --
----------------
-
 local positions = {} -- form positions
 
 --------------
@@ -47,6 +43,15 @@ function turtleminer.show_formspec(name, pos, formname, params)
 	    "button[4.95,1;1,1;submit_name;Set]"
 		show(formspec) -- show
 	end
+end
+
+---------------
+-- FUNCTIONS --
+---------------
+
+-- [function] check if breakable
+function turtleminer.is_breakable(pos)
+	if minetest.registered_nodes[minetest.get_node(pos).name].groups.unbreakable ~= 1 then return true end
 end
 
 -- [function] rotate
@@ -168,7 +173,7 @@ end
 function turtleminer.dig(pos, where, name)
 	-- [function] dig
 	local function dig(pos)
-		if minetest.get_node_or_nil(pos) then -- if node, dig
+		if minetest.get_node_or_nil(pos) and turtleminer.is_breakable(pos) then -- if node & breakable, dig
 			minetest.set_node(pos, { name = "air" })
 			nodeupdate(pos)
 			minetest.sound_play("moveokay", {to_player = name, gain = 1.0,}) -- play sound
@@ -183,10 +188,10 @@ function turtleminer.dig(pos, where, name)
 		-- adjust position considering facedir
 		dig_pos.z = dig_pos.z - dir.z
 		dig_pos.x = dig_pos.x - dir.x
-		dig(dig_pos) -- dig node in front
+		dig(dig_pos) -- dig node in front if not unbreakable
 	elseif where == "below" then -- elseif where is below, dig below
 		dig_pos.y = dig_pos.y - 1 -- remove 1 from dig_pos y axis
-		dig(dig_pos) -- dig node below
+		dig(dig_pos) -- dig node below if not unbreakable
 	end
 end
 
