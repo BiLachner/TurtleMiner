@@ -8,7 +8,7 @@ function turtleminer.log(content, log_type)
 end
 
 -- load turtle resources
-dofile(turtleminer.modpath.."/t_api.lua") -- load turtle api
+dofile(turtleminer.modpath.."/api.lua") -- load turtle api
 dofile(turtleminer.modpath.."/turtles.lua") -- turtle register
 dofile(turtleminer.modpath.."/remote.lua") -- remote control
 
