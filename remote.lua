@@ -66,6 +66,8 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 
 	local run = turtleminer.run_command
 
+	local run = turtleminer.run_command
+
 	-- Do Action
 	    if fields.turnright   then run(name, pos, "rotate", "right")
 	elseif fields.turnleft    then run(name, pos, "rotate", "left")
