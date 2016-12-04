@@ -11,6 +11,7 @@ function turtleminer.show_formspec(name, pos, formname, params)
 	local meta = minetest.get_meta(pos) -- get meta
   if not meta then return false end -- if not meta, something is wrong
   positions[name] = pos -- set position (for receive fields)
+	local tname = meta:get_string("name") or "Unnamed Turtle"
 
 	local function show(formspec)
 		meta:set_string("formname", formname) -- set meta
@@ -21,18 +22,31 @@ function turtleminer.show_formspec(name, pos, formname, params)
   if formname == "main" then
 		local formspec =
 			"size[6,4]" ..
-			"label[0,0;Click buttons to move the turtle around!]" ..
+			"label[0,0;"..tname.."]" ..
+			"button_exit[4.5,0;1.7,1;pos;"..minetest.pos_to_string(pos).."]" ..
+			"tooltip[pos;Refresh Position;#35454D;#FFFFFF]" ..
+			"label[0,0.3;Use the buttons to interact with your turtle.]" ..
 			"button_exit[4,1;1,1;exit;Exit]" ..
 			"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
+			"tooltip[up;Up;#35454D;#FFFFFF]" ..
 			"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
+			"tooltip[forward;Move Forward;#35454D;#FFFFFF]" ..
 			"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
+			"tooltip[digfront;Dig in Front;#35454D;#FFFFFF]" ..
 			"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
+			"tooltip[digbottom;Dig Beneath;#35454D;#FFFFFF]" ..
 			"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
+			"tooltip[buildfront;Build in Front;#35454D;#FFFFFF]" ..
 			"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
+			"tooltip[buildbottom;Build Beneath;#35454D;#FFFFFF]" ..
 			"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
+			"tooltip[turnleft;Turn Left;#35454D;#FFFFFF]" ..
 			"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
+			"tooltip[turnright;Turn Right;#35454D;#FFFFFF]" ..
 			"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
-			"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]"
+			"tooltip[down;Down;#35454D;#FFFFFF]" ..
+			"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]" ..
+			"tooltip[backward;Move Backward;#35454D;#FFFFFF]"
 		show(formspec) -- show
 	elseif formname == "set_name" then -- elseif form name is set_name, show set name formspec
 		if not params then local params = "" end -- use blank name is none specified
@@ -282,7 +296,9 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	elseif fields.digfront then turtleminer.dig(pos, "front", name) -- elseif dig in front button, dig in front
 	elseif fields.digbottom then turtleminer.dig(pos, "below", name) -- elseif dig bottom button, dig below
 	elseif fields.buildfront then turtleminer.build(pos, "front", name) -- elseif build in front button, build in front
-	elseif fields.buildbottom then turtleminer.build(pos, "below", name) end -- elseif build bottom button, build below
+	elseif fields.buildbottom then turtleminer.build(pos, "below", name) -- elseif build bottom button, build below
+	elseif fields.pos then turtleminer.show_formspec(name, pos, "main") -- elseif pos request, update pos
+	end
 end)
 
 -- on player fields received
