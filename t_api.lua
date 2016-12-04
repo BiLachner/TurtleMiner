@@ -32,7 +32,10 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 
 	local name = sender:get_player_name()
 	local meta = minetest.get_meta(positions[name])
-	local tname = fields.name or "Unnamed turtle"
+	local tname = fields.name
+	if not tname or tname == "" then
+		tname = "Unnamed Turtle"
+	end
 
 	meta:set_string("name", tname)
 	meta:set_string("infotext", tname .. "\n(owned by "..name..")")
