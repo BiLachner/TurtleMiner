@@ -227,12 +227,6 @@ end
 -- NODE DEF --
 --------------
 
--- remote
-minetest.register_craftitem("turtleminer:remotecontrol", {
-	description = "Turtle Remote Control",
-	inventory_image = "turtleminer_remotecontrol.png",
-})
-
 -- [function] register turtle
 function turtleminer.register_turtle(turtlestring, desc)
 	minetest.register_node("turtleminer:"..turtlestring, {
@@ -259,19 +253,9 @@ function turtleminer.register_turtle(turtlestring, desc)
 			if not meta:get_string("name") or meta:get_string("name") == "" then
 				turtleminer.show_formspec(name, pos, "set_name", "") -- show set name formspec
 			elseif meta:get_string("formname") ~= "" then -- elseif formname is set, show specific form
-				-- if wielding remote control, show formspec
-				if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
-					turtleminer.show_formspec(name, pos, meta:get_string("formname")) -- show formspec (note: no params)
-				else
-					minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
-				end
+				turtleminer.show_formspec(name, pos, meta:get_string("formname")) -- show formspec (note: no params)
 			else -- else, show normal formspec
-				-- if wielding remote control, show formspec
-				if clicker:get_wielded_item():get_name() == "turtleminer:remotecontrol" then
-					turtleminer.show_formspec(name, pos, "main") -- show main formspec
-				else
-					minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
-				end
+				turtleminer.show_formspec(name, pos, "main") -- show main formspec
 			end
 		end,
 	})
