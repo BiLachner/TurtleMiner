@@ -1,19 +1,47 @@
 -- turtleminer/t_api.lua
 
-turtleminer.positions = {}
-local positions = turtleminer.positions -- form positions
+turtleminer.turtles = {}
+local turtles = turtleminer.turtles
+
+function turtleminer.load()
+	local file = io.open(minetest.get_worldpath() .. "/turtleminer.txt", "r")
+	if file then
+		local from_file = minetest.deserialize(file:read("*all"))
+		file:close()
+		if type(from_file) == "table" then
+			turtleminer.turtles = from_file.turtles
+			turtles = turtleminer.turtles
+		end
+	end
+end
+
+function turtleminer.save()
+	local file = io.open(minetest.get_worldpath().."/turtleminer.txt", "w")
+	if file then
+		file:write(minetest.serialize({
+			version = 1,
+			turtles = turtleminer.turtles
+		}))
+		file:close()
+	else
+		assert(false)
+	end
+end
+
+minetest.register_on_shutdown(turtleminer.save)
+
+turtleminer.load()
 
 ---------------
 -- FUNCTIONS --
 ---------------
 
-function turtleminer.show_naming_formspec(name, pos)
-	local meta = minetest.get_meta(pos) -- get meta
-	if not meta then
-		return false
-	end
+local naming_form_contexts = {}
 
-	positions[name] = pos
+function turtleminer.show_naming_formspec(name, t_id)
+	assert(t_id)
+
+	naming_form_contexts[name] = t_id
 
 	local formspec =
 		"size[6,1.7]"..
@@ -31,12 +59,21 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	end
 
 	local name = sender:get_player_name()
-	local meta = minetest.get_meta(positions[name])
+	local t_id = naming_form_contexts[name]
+	local turtle = turtles[t_id]
+	if not turtle then
+		minetest.chat_send_player(name, "Unable to find the turtle (id="..dump(t_id)..")")
+		return
+	end
+	local pos = turtle.pos
+
+	local meta = minetest.get_meta(pos)
 	local tname = fields.name
 	if (fields.submit_name or fields.key_enter_field == "name")
 			and tname and tname ~= "" then
 		meta:set_string("name", tname)
 		meta:set_string("infotext", tname .. "\n(owned by "..name..")")
+		turtle.name = tname
 	end
 end)
 
@@ -134,10 +171,13 @@ function turtleminer.move(owner, pos, direction)
 
 	local def = minetest.registered_nodes[minetest.get_node(new_pos).name]
 	if not def.walkable then
-		minetest.remove_node(pos) -- remote old node
-		minetest.set_node(new_pos, node) -- create new node
-		positions[owner] = new_pos -- update position
-		minetest.get_meta(new_pos):from_table(oldmeta) -- set new meta
+		local t_id = oldmeta.fields.t_id
+		local turtle = turtles[t_id]
+		turtle.pos = new_pos
+		turtleminer.save()
+		minetest.remove_node(pos)
+		minetest.set_node(new_pos, node)
+		minetest.get_meta(new_pos):from_table(oldmeta)
 
 		-- if not walkable, move player
 		if not minetest.registered_nodes[minetest.get_node(entity_pos).name].walkable then
@@ -209,6 +249,8 @@ end
 -- NODE DEF --
 --------------
 
+local turtle_id_counter = 0
+
 -- [function] register turtle
 function turtleminer.register_turtle(turtlestring, def)
 	turtleminer._def["turtleminer:"..turtlestring] = def
@@ -216,7 +258,7 @@ function turtleminer.register_turtle(turtlestring, def)
 		drawtype = "nodebox",
 		description = def.description,
 		tiles = def.tiles,
-		groups={ oddly_breakable_by_hand=1 },
+		groups = { oddly_breakable_by_hand=1 },
 		paramtype = "light",
 		paramtype2 = "facedir",
 		node_box = {
@@ -226,9 +268,20 @@ function turtleminer.register_turtle(turtlestring, def)
 		after_place_node = function(pos, placer)
 			local meta = minetest.get_meta(pos)
 			local name = placer:get_player_name()
+
+			turtle_id_counter = turtle_id_counter + 1
+			local t_id = "t_" .. turtle_id_counter
+			turtles[t_id] = {
+				pos = pos,
+				owner = name,
+				name = nil
+			}
+			turtleminer.save()
+
 			meta:set_string("owner", name)
+			meta:set_string("t_id", t_id)
 			meta:set_string("infotext", "Unnamed turtle\n(owned by "..name..")")
-			turtleminer.show_naming_formspec(name, pos)
+			turtleminer.show_naming_formspec(name, t_id)
 		end,
 		on_rightclick = function(pos, node, clicker)
 			if not turtleminer.on_rightclick(pos, node, clicker)
@@ -249,7 +302,7 @@ function turtleminer.on_rightclick(pos, node, clicker)
 
 	-- If name not set, show name form
 	if not meta:get_string("name") or meta:get_string("name") == "" then
-		turtleminer.show_naming_formspec(name, pos)
+		turtleminer.show_naming_formspec(name, meta:get_string("t_id"))
 		return true
 	elseif def.on_rightclick then
 		def.on_rightclick(pos, node, clicker)

@@ -17,10 +17,10 @@ function turtleminer.show_remote_formspec(name, pos)
 	local t_id = meta:get_string("t_id")
 	remote_formspec_contexts[name] = t_id
 
-
 	local formspec =
 			"size[6,4]" ..
 			"label[0,0;" .. turtles[t_id].name .. "]"..
+			"label[0,0;Click buttons to move the turtle around!]"..
 			"button_exit[4.5,0;1.7,1;pos;"..minetest.pos_to_string(pos).."]" ..
 		[[
 			tooltip[pos;Refresh Position;#35454D;#FFFFFF]
@@ -63,9 +63,6 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	local t_id = remote_formspec_contexts[name]
 	local turtle = turtles[t_id]
 	local pos = turtle.pos
-
-	local run = turtleminer.run_command
-
 	local run = turtleminer.run_command
 
 	-- Do Action
