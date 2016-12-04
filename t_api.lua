@@ -1,67 +1,43 @@
 -- turtleminer/t_api.lua
 
-local positions = {} -- form positions
-
---------------
--- FORMSPEC --
---------------
-
--- [function] show formspec
-function turtleminer.show_formspec(name, pos, formname, params)
-	local meta = minetest.get_meta(pos) -- get meta
-  if not meta then return false end -- if not meta, something is wrong
-  positions[name] = pos -- set position (for receive fields)
-	local tname = meta:get_string("name") or "Unnamed Turtle"
-
-	local function show(formspec)
-		meta:set_string("formname", formname) -- set meta
-		minetest.show_formspec(name, "turtleminer:"..formname, formspec) -- show formspec
-	end
-
-  -- if form name is main, show main
-  if formname == "main" then
-		local formspec =
-			"size[6,4]" ..
-			"label[0,0;"..tname.."]" ..
-			"button_exit[4.5,0;1.7,1;pos;"..minetest.pos_to_string(pos).."]" ..
-			"tooltip[pos;Refresh Position;#35454D;#FFFFFF]" ..
-			"label[0,0.3;Use the buttons to interact with your turtle.]" ..
-			"button_exit[4,1;1,1;exit;Exit]" ..
-			"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
-			"tooltip[up;Up;#35454D;#FFFFFF]" ..
-			"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
-			"tooltip[forward;Move Forward;#35454D;#FFFFFF]" ..
-			"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
-			"tooltip[digfront;Dig in Front;#35454D;#FFFFFF]" ..
-			"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
-			"tooltip[digbottom;Dig Beneath;#35454D;#FFFFFF]" ..
-			"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
-			"tooltip[buildfront;Build in Front;#35454D;#FFFFFF]" ..
-			"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
-			"tooltip[buildbottom;Build Beneath;#35454D;#FFFFFF]" ..
-			"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
-			"tooltip[turnleft;Turn Left;#35454D;#FFFFFF]" ..
-			"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
-			"tooltip[turnright;Turn Right;#35454D;#FFFFFF]" ..
-			"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
-			"tooltip[down;Down;#35454D;#FFFFFF]" ..
-			"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]" ..
-			"tooltip[backward;Move Backward;#35454D;#FFFFFF]"
-		show(formspec) -- show
-	elseif formname == "set_name" then -- elseif form name is set_name, show set name formspec
-		if not params then local params = "" end -- use blank name is none specified
-	  local formspec =
-	    "size[6,1.7]"..
-	    default.gui_bg_img..
-	    "field[.25,0.50;6,1;name;Name Your Turtle:;"..params.."]"..
-	    "button[4.95,1;1,1;submit_name;Set]"
-		show(formspec) -- show
-	end
-end
+turtleminer.positions = {}
+local positions = turtleminer.positions -- form positions
 
 ---------------
 -- FUNCTIONS --
 ---------------
+
+function turtleminer.show_naming_formspec(name, pos)
+	local meta = minetest.get_meta(pos) -- get meta
+	if not meta then
+		return false
+	end
+
+	positions[name] = pos
+
+	local formspec =
+		"size[6,1.7]"..
+		default.gui_bg_img..
+		"field[.25,0.50;6,1;name;Name Your Turtle:;]"..
+		"button_exit[4.95,1;1,1;submit_name;Set]"
+
+	minetest.show_formspec(name, "turtleminer:set_name", formspec)
+end
+
+-- on player fields received
+minetest.register_on_player_receive_fields(function(sender, formname, fields)
+	if formname ~= "turtleminer:set_name" then
+		return
+	end
+
+	local name = sender:get_player_name()
+	local meta = minetest.get_meta(positions[name])
+	local tname = fields.name or "Unnamed turtle"
+
+	meta:set_string("name", tname)
+	meta:set_string("infotext", tname .. "\n(owned by "..name..")")
+end)
+
 
 -- [function] check if breakable
 function turtleminer.is_breakable(pos)
@@ -261,55 +237,15 @@ function turtleminer.register_turtle(turtlestring, desc)
 			meta:set_string("infotext", "Unnamed turtle\n(owned by "..placer:get_player_name()..")") -- set infotext
 		end,
 		on_rightclick = function(pos, node, clicker)
-			local name = clicker:get_player_name() -- get clicker name
+			local name = clicker:get_player_name()
 			local meta = minetest.get_meta(pos)
-			-- if name not set, show name form
+
+			-- If name not set, show name form
 			if not meta:get_string("name") or meta:get_string("name") == "" then
-				turtleminer.show_formspec(name, pos, "set_name", "") -- show set name formspec
-			elseif meta:get_string("formname") ~= "" then -- elseif formname is set, show specific form
-				turtleminer.show_formspec(name, pos, meta:get_string("formname")) -- show formspec (note: no params)
-			else -- else, show normal formspec
-				turtleminer.show_formspec(name, pos, "main") -- show main formspec
+				turtleminer.show_naming_formspec(name, pos)
+			else
+				minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
 			end
 		end,
 	})
 end
-
--- on player fields received
-minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:main" then return end -- if not right formspec, return
-
-	local name = sender:get_player_name()
-	local pos = positions[name]
-
-	if not pos then return end -- if not position, return - something is wrong
-
-	local node = minetest.get_node(pos) -- node info
-
-	-- check fields
-	if fields.turnright then turtleminer.rotate(pos, "right", name) -- elseif turn right button, rotate right
-	elseif fields.turnleft then turtleminer.rotate(pos, "left", name) -- elseif turn left button, rotate left
-	elseif fields.forward then turtleminer.move(pos, "forward", name) -- elseif move forward button, move forward
-	elseif fields.backward then turtleminer.move(pos, "backward", name) -- elseif move backward button, move backward
-	elseif fields.up then turtleminer.move(pos, "up", name) -- elseif move up button, move up
-	elseif fields.down then turtleminer.move(pos, "down", name) -- elseif move down button, move down
-	elseif fields.digfront then turtleminer.dig(pos, "front", name) -- elseif dig in front button, dig in front
-	elseif fields.digbottom then turtleminer.dig(pos, "below", name) -- elseif dig bottom button, dig below
-	elseif fields.buildfront then turtleminer.build(pos, "front", name) -- elseif build in front button, build in front
-	elseif fields.buildbottom then turtleminer.build(pos, "below", name) -- elseif build bottom button, build below
-	elseif fields.pos then turtleminer.show_formspec(name, pos, "main") -- elseif pos request, update pos
-	end
-end)
-
--- on player fields received
-minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:set_name" then return end -- if not right formspec, return
-
-	local name = sender:get_player_name()
-	local meta = minetest.get_meta(positions[name])
-	local tname = fields.name or "Unnamed turtle"
-
-	meta:set_string("name", tname) -- set name
-	meta:set_string("infotext", tname .. "\n(owned by "..name..")") -- set infotext
-	turtleminer.show_formspec(name, positions[name], "main") -- show main formspec
-end)
