@@ -11,3 +11,7 @@ end
 dofile(turtleminer.modpath.."/t_api.lua") -- load turtle api
 dofile(turtleminer.modpath.."/turtles.lua") -- turtle register
 dofile(turtleminer.modpath.."/remote.lua") -- remote control
+
+if minetest.global_exists("editor") then
+    dofile(turtleminer.modpath.."/editor.lua") -- remote control
+end
