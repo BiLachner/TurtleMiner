@@ -1,4 +1,4 @@
-turtleminer = {}
+turtleminer = { _def = {} }
 turtleminer.modpath = minetest.get_modpath("turtleminer")
 
 -- logger

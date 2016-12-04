@@ -33,12 +33,11 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	local name = sender:get_player_name()
 	local meta = minetest.get_meta(positions[name])
 	local tname = fields.name
-	if not tname or tname == "" then
-		tname = "Unnamed Turtle"
+	if (fields.submit_name or fields.key_enter_field == "name")
+			and tname and tname ~= "" then
+		meta:set_string("name", tname)
+		meta:set_string("infotext", tname .. "\n(owned by "..name..")")
 	end
-
-	meta:set_string("name", tname)
-	meta:set_string("infotext", tname .. "\n(owned by "..name..")")
 end)
 
 
@@ -221,17 +220,18 @@ end
 --------------
 
 -- [function] register turtle
-function turtleminer.register_turtle(turtlestring, desc)
+function turtleminer.register_turtle(turtlestring, def)
+	turtleminer._def["turtleminer:"..turtlestring] = def
 	minetest.register_node("turtleminer:"..turtlestring, {
 		drawtype = "nodebox",
-		description = desc.description,
-		tiles = desc.tiles,
+		description = def.description,
+		tiles = def.tiles,
 		groups={ oddly_breakable_by_hand=1 },
 		paramtype = "light",
 		paramtype2 = "facedir",
 		node_box = {
 			type = "fixed",
-			fixed = desc.nodebox
+			fixed = def.nodebox
 		},
 		after_place_node = function(pos, placer)
 			local meta = minetest.get_meta(pos)
@@ -241,15 +241,28 @@ function turtleminer.register_turtle(turtlestring, desc)
 			turtleminer.show_naming_formspec(name, pos)
 		end,
 		on_rightclick = function(pos, node, clicker)
-			local name = clicker:get_player_name()
-			local meta = minetest.get_meta(pos)
-
-			-- If name not set, show name form
-			if not meta:get_string("name") or meta:get_string("name") == "" then
-				turtleminer.show_naming_formspec(name, pos)
-			else
+			if not turtleminer.on_rightclick(pos, node, clicker)
+						and minetest.registered_items["turtleminer:remote"] then
 				minetest.chat_send_player(name, "Use a remote controller to access the turtle.")
 			end
 		end,
 	})
+end
+
+function turtleminer.on_rightclick(pos, node, clicker)
+	local name = clicker:get_player_name()
+	local meta = minetest.get_meta(pos)
+	local def  = turtleminer._def[minetest.get_node(pos).name]
+	if not def then
+		return
+	end
+
+	-- If name not set, show name form
+	if not meta:get_string("name") or meta:get_string("name") == "" then
+		turtleminer.show_naming_formspec(name, pos)
+		return true
+	elseif def.on_rightclick then
+		def.on_rightclick(pos, node, clicker)
+		return true
+	end
 end
