@@ -231,10 +231,11 @@ function turtleminer.register_turtle(turtlestring, desc)
 			fixed = desc.nodebox
 		},
 		after_place_node = function(pos, placer)
-			local meta = minetest.get_meta(pos) -- get meta
-			--meta:set_string("formspec", turtleminer.formspec()) -- set formspec
-			meta:set_string("owner", placer:get_player_name()) -- set owner
-			meta:set_string("infotext", "Unnamed turtle\n(owned by "..placer:get_player_name()..")") -- set infotext
+			local meta = minetest.get_meta(pos)
+			local name = placer:get_player_name()
+			meta:set_string("owner", name)
+			meta:set_string("infotext", "Unnamed turtle\n(owned by "..name..")")
+			turtleminer.show_naming_formspec(name, pos)
 		end,
 		on_rightclick = function(pos, node, clicker)
 			local name = clicker:get_player_name()
