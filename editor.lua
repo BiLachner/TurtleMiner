@@ -1,4 +1,7 @@
 local bot_editor = editor.editor:new("editor:editor")
+local filesys = editor.filesystem:new()
+filesys:write("main.turtle", "forward\nforward\nleft\nforward\nforward\n")
+bot_editor.default_filesystem = filesys
 
 local player_attachments = {}
 local running_vms = {}
@@ -52,6 +55,16 @@ bot_editor:register_button("Run", function(self, name, context)
 	else
 		minetest.chat_send_player(name, "Could not execute, unable to get code from buffer")
 	end
+end)
+
+bot_editor:register_button("Stop", function(self, name, context)
+	local t_id = player_attachments[name]
+	if not t_id then
+		minetest.chat_send_player("Right-click on the turtle you want to use")
+		return
+	end
+
+	running_vms[t_id] = nil
 end)
 
 minetest.register_chatcommand("editor", {
