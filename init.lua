@@ -1,4 +1,4 @@
-turtleminer = {}
+turtleminer = { _def = {} }
 turtleminer.modpath = minetest.get_modpath("turtleminer")
 
 -- logger
@@ -8,5 +8,11 @@ function turtleminer.log(content, log_type)
 end
 
 -- load turtle resources
-dofile(turtleminer.modpath.."/t_api.lua") -- load turtle api
+dofile(turtleminer.modpath.."/api.lua") -- load turtle api
 dofile(turtleminer.modpath.."/turtles.lua") -- turtle register
+dofile(turtleminer.modpath.."/remote.lua") -- remote control
+dofile(turtleminer.modpath.."/scriptvm.lua") -- remote control
+
+if minetest.global_exists("editor") then
+    dofile(turtleminer.modpath.."/editor.lua") -- turtles
+end
