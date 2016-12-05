@@ -70,6 +70,10 @@ function turtleminer.build_script(owner, t_id, source)
 			end
 		end,
 
+		is_alive = function(self)
+			return pointer <= #statements and not errored
+		end,
+
 		step = function(self)
 			if errored then
 				return
@@ -81,7 +85,7 @@ function turtleminer.build_script(owner, t_id, source)
 				local pos = turtleminer.turtles[t_id].pos
 				local res = turtleminer.run_command(owner, pos, stmt.command, stmt.params)
 				if not pos then
-					self.errored = true
+					errored = true
 				end
 			end
 		end,

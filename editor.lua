@@ -46,6 +46,7 @@ bot_editor:register_button("Run", function(self, name, context)
 		local vm = turtleminer.build_script("singleplayer", t_id, code)
 		if type(vm) == "table" then
 			running_vms[t_id] = vm
+			bot_editor:show(name)
 			minetest.chat_send_player(name, "Started program")
 		elseif vm then
 			minetest.chat_send_player(name, vm)
@@ -65,6 +66,9 @@ bot_editor:register_button("Stop", function(self, name, context)
 	end
 
 	running_vms[t_id] = nil
+	bot_editor:show(name)
+end, function(self, name, context)
+	return running_vms[player_attachments[name]]
 end)
 
 minetest.register_chatcommand("editor", {
