@@ -6,25 +6,28 @@ bot_editor.default_filesystem = filesys
 local player_attachments = {}
 local running_vms = {}
 
-minetest.register_craftitem("turtleminer:programmer", {
-	description = "Turtle Programmer",
-	inventory_image = "turtleminer_programmer.png",
-	on_place = function(itemstack, placer, pointed_thing)
-		local nodename = minetest.get_node(pointed_thing.under).name
-		local def = minetest.registered_nodes[nodename]
-		if def.groups.turtle then
-			local name = placer:get_player_name()
-			local meta = minetest.get_meta(pointed_thing.under)
-			local t_id = meta:get_string("t_id")
-			if t_id then
-				player_attachments[name] = t_id
-				bot_editor:show(name)
-				return
-			end
-		end
-		minetest.chat_send_player(placer:get_player_name(), "Right-click a turtle")
-	end,
-})
+local old_on_rightclick = turtleminer.on_rightclick
+function turtleminer.on_rightclick(pos, node, clicker)
+	if old_on_rightclick(pos, node, clicker) then
+		return true
+	end
+
+	local name = clicker:get_player_name()
+	local meta = minetest.get_meta(pos)
+	local def  = turtleminer._def[minetest.get_node(pos).name]
+	if not def then
+		return
+	end
+
+	local t_id = meta:get_string("t_id")
+	if t_id then
+		player_attachments[name] = t_id
+		bot_editor:show(name)
+		return
+	end
+end
+
+
 
 local function step()
 	for _, vm in pairs(running_vms) do
