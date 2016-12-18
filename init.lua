@@ -9,4 +9,5 @@ end
 
 -- load turtle resources
 dofile(turtleminer.modpath.."/t_api.lua") -- load turtle api
+dofile(turtleminer.modpath.."/remote.lua") -- load remote control
 dofile(turtleminer.modpath.."/turtles.lua") -- turtle register

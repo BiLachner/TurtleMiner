@@ -129,7 +129,7 @@ function turtleminer.show_main_formspec(name, pos)
 
 	local formspec =
 		"size[6,4]" ..
-		"label[0,0.2;"..tname.."]" ..
+		"label[0,0;"..tname.." - id: "..t_id.."]" ..
 		"button_exit[4.3,-0.3;1.9,1;pos;"..minetest.pos_to_string(pos).."]" ..
 		"tooltip[pos;Refresh Position;#35454D;#FFFFFF]" ..
 		"label[0,0.5;Use the buttons to interact with your turtle.]" ..
