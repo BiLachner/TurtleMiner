@@ -381,6 +381,7 @@ function turtleminer.register_turtle(turtlestring, desc)
 		description = desc.description,
 		tiles = desc.tiles,
 		groups={ oddly_breakable_by_hand = 1, turtle = 1 },
+		light_source = desc.light_source or 7,
 		paramtype = "light",
 		paramtype2 = "facedir",
 		node_box = {
