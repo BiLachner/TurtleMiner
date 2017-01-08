@@ -50,7 +50,9 @@ bot_editor:register_button("Run", function(self, name, context)
 		if type(vm) == "table" then
 			running_vms[t_id] = vm
 			bot_editor:show(name)
-			minetest.chat_send_player(name, "Started program")
+		    --minetest.chat_send_player(name, "Started program")
+		      minetest.chat_send_player(name, "Started program: "..context.open)  --HJG
+			minetest.log("action", "[turtleminer] Started program: "..context.open)
 		elseif vm then
 			minetest.chat_send_player(name, vm)
 		else
@@ -112,7 +114,7 @@ end)
 local function save_and_delete_player_editor(name)
 	local context = bot_editor._context[name]
 	assert(context and context.filesystem,
-			"Count not save!" .. datapath .. "/" .. name .. ".lua")
+			"Could not save!" .. datapath .. "/" .. name .. ".lua")
 
 	print("[editor] Saved to " .. datapath .. "/" .. name .. ".lua")
 	context.filesystem:save(datapath .. "/" .. name .. ".lua")
