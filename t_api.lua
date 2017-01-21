@@ -36,9 +36,9 @@ minetest.register_on_shutdown(turtleminer.save)
 
 turtleminer.load()
 
-------------------------
--- POSITION FUNCTIONS --
-------------------------
+----------------------
+-- HELPER FUNCTIONS --
+----------------------
 
 -- [function] update position
 function turtleminer.update_pos(t_id, new_pos)
@@ -74,117 +74,166 @@ end
 -- FORMSPEC --
 --------------
 
--- [formspec] naming
-local naming_form_contexts = {}
+local form_contexts = {}
 
-function turtleminer.show_naming_formspec(name, t_id)
-	assert(t_id)
+-- formspec pages
+turtleminer.forms = {
+	naming = {
+		get = function(pos)
+			local meta = minetest.get_meta(pos)
+			local t_id = meta:get_string("t_id")
 
-	naming_form_contexts[name] = t_id
+			return
+				"size[6,1.7]"..
+				default.gui_bg_img..
+				"field[.25,0.50;6,1;name;Name Your Turtle:;]"..
+				"button_exit[4.95,1;1,1;submit_name;Set]"
+		end,
+		on_receive_fields = function(player, fields)
+			local name = player:get_player_name()
+			local turtle = turtles[form_contexts[name].t_id]
 
-	local formspec =
-		"size[6,1.7]"..
-		default.gui_bg_img..
-		"field[.25,0.50;6,1;name;Name Your Turtle:;]"..
-		"button_exit[4.95,1;1,1;submit_name;Set]"
+			if not turtle then
+				minetest.chat_send_player(name, "Unable to find the turtle (id="..minetest.pos_to_string(t_id)..")")
+				return
+			end
 
-	minetest.show_formspec(name, "turtleminer:set_name", formspec)
+			local pos = turtle.pos
+			local meta = minetest.get_meta(pos)
+			local tname = fields.name
+			if (fields.submit_name or fields.key_enter_field == "name") and tname and tname ~= "" then
+				meta:set_string("name", tname) -- set turtle name
+				meta:set_string("setup", "true") -- set setup boolean string
+				meta:set_string("infotext", tname .. "\n(owned by "..name..")") -- set infotext
+				turtle.name = tname
+			end
+		end,
+	},
+	main = {
+		get = function(pos)
+			local meta = minetest.get_meta(pos)
+			local tname, t_id = meta:get_string("name"), meta:get_string("t_id")
+			return
+				"size[6,4]" ..
+				"tabheader[0,0;tabs;Main,Inventory;1]" ..
+				"label[0,0;"..tname.." - id: "..t_id.."]" ..
+				"button_exit[4.3,-0.3;1.9,1;pos;"..minetest.pos_to_string(pos).."]" ..
+				"tooltip[pos;Refresh Position;#35454D;#FFFFFF]" ..
+				"label[0,0.5;Use the buttons to interact with your turtle.]" ..
+				"button_exit[4,1;1,1;exit;Exit]" ..
+				"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
+				"tooltip[up;Up;#35454D;#FFFFFF]" ..
+				"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
+				"tooltip[forward;Move Forward;#35454D;#FFFFFF]" ..
+				"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
+				"tooltip[digfront;Dig in Front;#35454D;#FFFFFF]" ..
+				"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
+				"tooltip[digbottom;Dig Beneath;#35454D;#FFFFFF]" ..
+				"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
+				"tooltip[buildfront;Build in Front;#35454D;#FFFFFF]" ..
+				"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
+				"tooltip[buildbottom;Build Beneath;#35454D;#FFFFFF]" ..
+				"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
+				"tooltip[turnleft;Turn Left;#35454D;#FFFFFF]" ..
+				"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
+				"tooltip[turnright;Turn Right;#35454D;#FFFFFF]" ..
+				"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
+				"tooltip[down;Down;#35454D;#FFFFFF]" ..
+				"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]" ..
+				"tooltip[backward;Move Backward;#35454D;#FFFFFF]"
+		end,
+		on_receive_fields = function(player, fields)
+			local name = player:get_player_name()
+			local turtle = turtles[form_contexts[name].t_id]
+
+			local pos = turtle.pos
+
+			if fields.tabs == "2" then
+        turtleminer.open(pos, player, "inventory")
+        return
+      end
+
+			local run = turtleminer.run
+			if 		 fields.turnright   then run(name, pos, "rotate", "right")
+			elseif fields.turnleft    then run(name, pos, "rotate", "left")
+			elseif fields.forward     then run(name, pos, "move",   "forward")
+			elseif fields.backward    then run(name, pos, "move",   "backward")
+			elseif fields.up          then run(name, pos, "move",   "up")
+			elseif fields.down        then run(name, pos, "move",   "down")
+			elseif fields.digfront    then run(name, pos, "dig",    "front")
+			elseif fields.digbottom   then run(name, pos, "dig",    "below")
+			elseif fields.buildfront  then run(name, pos, "build",  "front")
+			elseif fields.buildbottom then run(name, pos, "build",  "below")
+			elseif fields.pos					then turtleminer.open(pos, player) -- update formspec
+			end
+		end,
+	},
+	inventory = {
+		get = function(pos)
+			local spos = pos.x .. "," .. pos.y .. "," .. pos.z
+
+			return
+				"size[9,9]" ..
+				"tabheader[0,0;tabs;Main,Inventory;2]" ..
+				default.gui_bg ..
+				default.gui_bg_img ..
+				default.gui_slots ..
+				"list[nodemeta:" .. spos .. ";main;0,0.3;8,4;]" ..
+				"list[nodemeta:" .. spos .. ";place_node;8.07,1.8;8,4;]" ..
+				"label[8.07,2.7;Node\nto\nplace]" ..
+				"list[current_player;main;0,4.85;8,1;]" ..
+				"list[current_player;main;0,6.08;8,3;8]" ..
+				"listring[nodemeta:" .. spos .. ";main]" ..
+				"listring[current_player;main]" ..
+				default.get_hotbar_bg(0,4.85)
+		end,
+		on_receive_fields = function(player, fields)
+			local name = player:get_player_name()
+			local turtle = turtles[form_contexts[name].t_id]
+			local pos = turtle.pos
+
+			if fields.tabs == "1" then
+        turtleminer.open(pos, player, "main")
+        return
+      end
+		end,
+	}
+}
+
+-- [function] open formspec (on_rightclick)
+function turtleminer.open(pos, player, formname)
+	assert(pos, "turtleminer.open missing position")
+
+  local meta = minetest.get_meta(pos)
+  local name = player:get_player_name()
+
+  if meta:get_string("setup") == "false" then
+    form_contexts[name] = { t_id = meta:get_string("t_id"), form = "naming", } -- set context
+    minetest.show_formspec(name, "turtleminer:naming", turtleminer.forms["naming"].get(pos))
+  else
+		local form
+		if not formname then
+			if meta:get_string("formname") == "" then
+				form = "main"
+			else
+				form = meta:get_string("formname")
+			end
+		else
+			form = formname
+		end
+
+		meta:set_string("formname", form)
+    form_contexts[name] = { t_id = meta:get_string("t_id"), form = form, } -- set context
+    minetest.show_formspec(name, "turtleminer:"..form, turtleminer.forms[form].get(pos))
+  end
 end
 
--- on player fields received
-minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:set_name" then
-		return
-	end
-
-	local name = sender:get_player_name()
-	local t_id = naming_form_contexts[name]
-	local turtle = turtles[t_id]
-	if not turtle then
-		minetest.chat_send_player(name, "Unable to find the turtle (id="..minetest.pos_to_string(t_id)..")")
-		return
-	end
-	local pos = turtle.pos
-
-	local meta = minetest.get_meta(pos)
-	local tname = fields.name
-	if (fields.submit_name or fields.key_enter_field == "name")
-			and tname and tname ~= "" then
-		meta:set_string("name", tname)
-		meta:set_string("infotext", tname .. "\n(owned by "..name..")")
-		turtle.name = tname
-	end
-end)
-
--- [formspec] main
-local main_form_contexts = {}
-
-function turtleminer.show_main_formspec(name, pos)
-	local meta = minetest.get_meta(pos) -- get meta
-  if not meta then return false end -- if not meta, something is wrong
-
-	local tname = meta:get_string("name") or "Unnamed Turtle" -- get turtle name
-	local t_id = meta:get_string("t_id") -- get turtle id
-	main_form_contexts[name] = t_id -- update contexts
-
-	local formspec =
-		"size[6,4]" ..
-		"label[0,0;"..tname.." - id: "..t_id.."]" ..
-		"button_exit[4.3,-0.3;1.9,1;pos;"..minetest.pos_to_string(pos).."]" ..
-		"tooltip[pos;Refresh Position;#35454D;#FFFFFF]" ..
-		"label[0,0.5;Use the buttons to interact with your turtle.]" ..
-		"button_exit[4,1;1,1;exit;Exit]" ..
-		"image_button[0,1;1,1;turtleminer_remote_arrow_up.png;up;]" ..
-		"tooltip[up;Up;#35454D;#FFFFFF]" ..
-		"image_button[1,1;1,1;turtleminer_remote_arrow_fw.png;forward;]" ..
-		"tooltip[forward;Move Forward;#35454D;#FFFFFF]" ..
-		"image_button[2,1;1,1;turtleminer_remote_dig_front.png;digfront;]" ..
-		"tooltip[digfront;Dig in Front;#35454D;#FFFFFF]" ..
-		"image_button[2,3;1,1;turtleminer_remote_dig_down.png;digbottom;]" ..
-		"tooltip[digbottom;Dig Beneath;#35454D;#FFFFFF]" ..
-		"image_button[3,1;1,1;turtleminer_remote_build_front.png;buildfront;]" ..
-		"tooltip[buildfront;Build in Front;#35454D;#FFFFFF]" ..
-		"image_button[3,3;1,1;turtleminer_remote_build_down.png;buildbottom;]" ..
-		"tooltip[buildbottom;Build Beneath;#35454D;#FFFFFF]" ..
-		"image_button[0,2;1,1;turtleminer_remote_arrow_left.png;turnleft;]"..
-		"tooltip[turnleft;Turn Left;#35454D;#FFFFFF]" ..
-		"image_button[2,2;1,1;turtleminer_remote_arrow_right.png;turnright;]" ..
-		"tooltip[turnright;Turn Right;#35454D;#FFFFFF]" ..
-		"image_button[0,3;1,1;turtleminer_remote_arrow_down.png;down;]" ..
-		"tooltip[down;Down;#35454D;#FFFFFF]" ..
-		"image_button[1,3;1,1;turtleminer_remote_arrow_bw.png;backward;]" ..
-		"tooltip[backward;Move Backward;#35454D;#FFFFFF]"
-	minetest.show_formspec(name, "turtleminer:main", formspec) -- show formspec
-end
-
--- on player fields received
-minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname ~= "turtleminer:main" then return end -- if not right formspec, return
-
-	local name = sender:get_player_name()
-	local turtle = turtles[main_form_contexts[name]] -- get turtle
-
-	if not turtle then
-		minetest.chat_send_player(name, "Unable to find the turtle.")
-		return
-	end
-
-	local pos = turtle.pos -- get pos
-	local run = turtleminer.run
-
-	-- do requested action
-	if 		 fields.turnright   then run(name, pos, "rotate", "right")
-	elseif fields.turnleft    then run(name, pos, "rotate", "left")
-	elseif fields.forward     then run(name, pos, "move",   "forward")
-	elseif fields.backward    then run(name, pos, "move",   "backward")
-	elseif fields.up          then run(name, pos, "move",   "up")
-	elseif fields.down        then run(name, pos, "move",   "down")
-	elseif fields.digfront    then run(name, pos, "dig",    "front")
-	elseif fields.digbottom   then run(name, pos, "dig",    "below")
-	elseif fields.buildfront  then run(name, pos, "build",  "front")
-	elseif fields.buildbottom then run(name, pos, "build",  "below")
-	elseif fields.pos					then turtleminer.show_main_formspec(name, pos) -- update formspec
-	end
+-- [event] on receive fields
+minetest.register_on_player_receive_fields(function(player, formname, fields)
+  local formname = formname:split(":")[2]
+  if turtleminer.forms[formname] then
+    turtleminer.forms[formname].on_receive_fields(player, fields)
+  end
 end)
 
 ---------------
@@ -199,9 +248,94 @@ local function getTableLength(t)
   return count
 end
 
+-- [local function] check itemstack validity
+local function check_itemstack(stack)
+	if not stack:is_empty() and stack:is_known() then
+		return true
+	end
+end
+
 -- [function] check if breakable
 function turtleminer.is_breakable(pos)
 	if minetest.registered_nodes[minetest.get_node(pos).name].groups.unbreakable ~= 1 then return true end
+end
+
+-- [function] check for room in turtle inventory
+function turtleminer.check_for_room(pos, stackstring, listname)
+	if not listname then
+		listname = "main"
+	end
+
+	local meta = minetest.get_meta(pos)
+	assert(meta, "turtleminer.check_for_room missing meta")
+
+	local inv = meta:get_inventory()
+	local stack = ItemStack(stackstring)
+	if check_itemstack(stack) then
+		if not inv:room_for_item(listname, stack) then
+			return nil, "Not enough room"
+		end
+		return true
+	end
+end
+
+-- [function] check if inventory contains item
+function turtleminer.has_item(pos, stackstring, listname)
+	if not listname then
+		listname = "main"
+	end
+
+	local meta = minetest.get_meta(pos)
+	assert(meta, "turtleminer.check_for_room missing meta")
+
+	local inv = meta:get_inventory()
+	local stack = ItemStack(stackstring)
+
+	if check_itemstack(stack) then
+		if inv:contains_item(listname, stack) then
+			return true
+		end
+	end
+end
+
+-- [function] add item to turtle inventory
+function turtleminer.add_item(pos, stackstring, listname)
+	if not listname then
+		listname = "main"
+	end
+
+	local meta = minetest.get_meta(pos)
+	assert(meta, "turtleminer.check_for_room missing meta")
+
+	local inv = meta:get_inventory()
+	local stack = ItemStack(stackstring)
+
+	if check_itemstack(stack) then
+		local leftover = inv:add_item(listname, stack)
+		if leftover:get_count() > 0 then
+			return false, leftover, "Inventory is full! " .. leftover:get_count() .. " items weren't added"
+		else
+			return true
+		end
+	end
+end
+
+-- [function] take item from turtle inventory
+function turtleminer.take_item(pos, stackstring, listname)
+	if not listname then
+		listname = "main"
+	end
+
+	local meta = minetest.get_meta(pos)
+	assert(meta, "turtleminer.check_for_room missing meta")
+
+	local inv = meta:get_inventory()
+	local stack = ItemStack(stackstring)
+
+	if check_itemstack(stack) then
+		local taken = inv:remove_item(listname, stack)
+		return true, taken:get_count()
+	end
 end
 
 -- [function] rotate
@@ -319,10 +453,21 @@ end
 -- [function] dig
 function turtleminer.dig(pos, where)
 	-- [function] dig
-	local function dig(pos)
-		if minetest.get_node_or_nil(pos) and turtleminer.is_breakable(pos) then -- if node & breakable, dig
-			minetest.set_node(pos, { name = "air" })
-			nodeupdate(pos)
+	local function dig(dig_pos)
+		if minetest.get_node_or_nil(dig_pos) and turtleminer.is_breakable(dig_pos) then -- if node & breakable, dig
+			local dig_node = minetest.get_node(dig_pos)
+			local itemstacks = minetest.get_node_drops(dig_node.name)
+
+			for _, itemname in ipairs(itemstacks) do
+				local ok, leftover, msg = turtleminer.add_item(pos, itemname)
+
+				if ok == false then
+						minetest.add_item(dig_pos, itemname)
+				end
+			end
+
+			minetest.set_node(dig_pos, { name = "air" })
+			nodeupdate(dig_pos)
 			return { sound = true } -- return sound
 		else return { sound = false } end -- else, return error sound
 	end
@@ -344,12 +489,26 @@ end
 
 -- [function] build
 function turtleminer.build(pos, where)
+	local inv = minetest.get_meta(pos):get_inventory()
+
 	-- [function] build
 	local function build(pos)
 		if minetest.registered_nodes[minetest.get_node(pos).name].buildable_to then -- if is buildable_to, build
-			minetest.set_node(pos, { name = "dirt" })
-			nodeupdate(pos)
-			return { sound = true } -- return sound
+			if inv:is_empty("place_node") then
+				return { sound = false }
+			else
+				local place_stack = inv:get_list("place_node")[1]
+				local place_name = place_stack:get_name()
+
+				if minetest.registered_nodes[place_name] then
+					inv:remove_item("place_node", place_name.." 1")
+					minetest.set_node(pos, { name = place_name })
+					nodeupdate(pos)
+					return { sound = true } -- return sound
+				else
+					return { sound = false }
+				end
+			end
 		else return { sound = false } end -- else, return error sound
 	end
 
@@ -403,23 +562,48 @@ function turtleminer.register_turtle(turtlestring, desc)
 
 			meta:set_string("owner", name) -- set owner
 			meta:set_string("t_id", t_id) -- set turtle id
+			meta:set_string("setup", "false") -- set setup boolean string
 			meta:set_string("infotext", "Unnamed turtle\n(owned by "..name..")") -- set name
+
+			local inv = minetest.get_inventory({type="node", pos={x=pos.x, y=pos.y, z=pos.z}})
+			inv:set_size("main", 8*4)
+			inv:set_size("place_node", 1*1)
 		end,
 		on_dig = function(pos, node, player)
 			turtles[minetest.get_meta(pos):get_string("t_id")] = nil -- clear entry
 			turtleminer.save() -- save
 			minetest.node_dig(pos, node, player)
 		end,
-		on_rightclick = function(pos, node, clicker)
-			local name = clicker:get_player_name() -- get clicker name
-			local meta = minetest.get_meta(pos)
-			local t_id = meta:get_string("t_id") -- get turtle id
-			-- if name not set, show name form
-			if not meta:get_string("name") or meta:get_string("name") == "" then
-				turtleminer.show_naming_formspec(name, t_id) -- show set name formspec
-			else -- else, show normal formspec
-				turtleminer.show_main_formspec(name, pos) -- show main formspec
-			end
+		on_rightclick = function(pos, node, player)
+			turtleminer.open(pos, player)
+		end,
+		can_dig = function(pos,player)
+			local meta = minetest.get_meta(pos);
+			local inv = meta:get_inventory()
+			return inv:is_empty("main")
+		end,
+
+		on_metadata_inventory_move = function(pos, from_list, from_index,
+				to_list, to_index, count, player)
+			turtleminer.log(player:get_player_name() ..
+				" moves stuff in turtle inventory at " .. minetest.pos_to_string(pos))
+		end,
+	  on_metadata_inventory_put = function(pos, listname, index, stack, player)
+			turtleminer.log(player:get_player_name() ..
+				" moves " .. stack:get_name() ..
+				" to turtle inventory at " .. minetest.pos_to_string(pos))
+		end,
+	  on_metadata_inventory_take = function(pos, listname, index, stack, player)
+			turtleminer.log(player:get_player_name() ..
+				" takes " .. stack:get_name() ..
+				" from turtle inventory at " .. minetest.pos_to_string(pos))
+		end,
+		on_blast = function(pos)
+			local drops = {}
+			default.get_inventory_drops(pos, "main", drops)
+			drops[#drops+1] = "turtleminer:"..turtlestring
+			minetest.remove_node(pos)
+			return drops
 		end,
 	})
 end
