@@ -467,7 +467,7 @@ function turtleminer.dig(pos, where)
 			end
 
 			minetest.set_node(dig_pos, { name = "air" })
-			nodeupdate(dig_pos)
+			minetest.check_for_falling(dig_pos)
 			return { sound = true } -- return sound
 		else return { sound = false } end -- else, return error sound
 	end
@@ -503,7 +503,7 @@ function turtleminer.build(pos, where)
 				if minetest.registered_nodes[place_name] then
 					inv:remove_item("place_node", place_name.." 1")
 					minetest.set_node(pos, { name = place_name })
-					nodeupdate(pos)
+					minetest.check_for_falling(pos)
 					return { sound = true } -- return sound
 				else
 					return { sound = false }
